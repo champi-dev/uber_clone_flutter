@@ -1,0 +1,198 @@
+// SQLite-adapted schema. Enums represented as strings (SQLite has no enums).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  fullName      String
+  phone         String
+  avatarUrl     String?
+  role          String   @default("rider") // rider | driver | admin
+  isActive      Boolean  @default(true)
+  isVerified    Boolean  @default(true)
+  ratingAvg     Float    @default(5.0)
+  ratingCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  driverProfile DriverProfile?
+  ridesAsRider  Ride[]     @relation("RiderRides")
+  ridesAsDriver Ride[]     @relation("DriverRides")
+  savedPlaces   SavedPlace[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  ratingsGiven  RideRating[]   @relation("RatingsGiven")
+  ratingsReceived RideRating[] @relation("RatingsReceived")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model DriverProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber    String
+  licenseExpiry    DateTime
+  status           String   @default("offline") // offline | available | busy | on_ride
+  currentLat       Float?
+  currentLng       Float?
+  currentHeading   Float?
+  totalRides       Int      @default(0)
+  totalEarnings    Float    @default(0)
+  isApproved       Boolean  @default(true)
+  currentVehicleId String?
+  vehicles         Vehicle[]
+}
+
+model Vehicle {
+  id              String   @id @default(uuid())
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  vehicleType     String   // economy | comfort | premium | xl
+  make            String
+  model           String
+  year            Int
+  color           String
+  plateNumber     String   @unique
+  capacity        Int      @default(4)
+  photoUrl        String?
+  isActive        Boolean  @default(true)
+  rides           Ride[]
+}
+
+model Ride {
+  id                      String   @id @default(uuid())
+  riderId                 String
+  rider                   User     @relation("RiderRides", fields: [riderId], references: [id])
+  driverId                String?
+  driver                  User?    @relation("DriverRides", fields: [driverId], references: [id])
+  vehicleId               String?
+  vehicle                 Vehicle? @relation(fields: [vehicleId], references: [id])
+  status                  String   // requested | accepted | driver_arrived | in_progress | completed | cancelled
+  vehicleTypeRequested    String
+  pickupAddress           String
+  pickupLat               Float
+  pickupLng               Float
+  dropoffAddress          String
+  dropoffLat              Float
+  dropoffLng              Float
+  estimatedDistanceKm     Float?
+  actualDistanceKm        Float?
+  estimatedDurationMin    Int?
+  actualDurationMin       Int?
+  estimatedFare           Float?
+  actualFare              Float?
+  surgeMultiplier         Float    @default(1.0)
+  paymentStatus           String   @default("pending") // pending | paid | refunded
+  cancellationReason      String?
+  cancelledBy             String?
+  routePolyline           String?
+  promoCodeApplied        String?
+  discountAmount          Float?
+  requestedAt             DateTime @default(now())
+  acceptedAt              DateTime?
+  arrivedAt               DateTime?
+  startedAt               DateTime?
+  completedAt             DateTime?
+  cancelledAt             DateTime?
+
+  rating                  RideRating?
+  locationLogs            RideLocationLog[]
+
+  @@index([riderId])
+  @@index([driverId])
+  @@index([status])
+}
+
+model RideRating {
+  id            String   @id @default(uuid())
+  rideId        String   @unique
+  ride          Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  ratedById     String
+  ratedBy       User     @relation("RatingsGiven", fields: [ratedById], references: [id])
+  ratedUserId   String
+  ratedUser     User     @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+  score         Int
+  comment       String?
+  tags          String?  // JSON array stored as string
+  createdAt     DateTime @default(now())
+}
+
+model FareConfig {
+  id                  String   @id @default(uuid())
+  vehicleType         String   @unique
+  baseFare            Float
+  perKmRate           Float
+  perMinuteRate       Float
+  minimumFare         Float
+  bookingFee          Float    @default(0)
+  surgeThreshold      Int      @default(5)
+  maxSurgeMultiplier  Float    @default(3.0)
+  isActive            Boolean  @default(true)
+}
+
+model SavedPlace {
+  id        String @id @default(uuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  address   String
+  lat       Float
+  lng       Float
+  icon      String @default("home")
+  sortOrder Int    @default(0)
+}
+
+model RideLocationLog {
+  id         String   @id @default(uuid())
+  rideId     String
+  ride       Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  lat        Float
+  lng        Float
+  heading    Float?
+  speedKmh   Float?
+  recordedAt DateTime @default(now())
+
+  @@index([rideId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  dataJson  String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PromoCode {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  discountType  String   // percentage | fixed
+  discountValue Float
+  maxUses       Int      @default(100)
+  usedCount     Int      @default(0)
+  validFrom     DateTime
+  validUntil    DateTime
+  isActive      Boolean  @default(true)
+}
