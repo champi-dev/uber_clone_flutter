@@ -14,6 +14,7 @@ The API is deployed as part of the champi docker-compose stack.
 | | |
 |---|---|
 | Compose service / container | `ridenow-server` |
+| Public base URL | `https://ridenow.champi.lat` |
 | Local base URL | `http://127.0.0.1:8096` (API prefix `/api/v1`) |
 | Stack | Express + TypeScript (tsx), Prisma, Socket.IO |
 | Database | SQLite at `/data/ridenow.db`, persisted in the `ridenow_data` volume |
