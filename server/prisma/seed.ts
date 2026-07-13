@@ -62,7 +62,7 @@ async function main() {
 
   // Riders
   const rider1 = await prisma.user.create({
-    data: { email: 'rider@demo.com', passwordHash: riderPass, fullName: 'Carlos Martínez', phone: '+57 300 123 4567', role: 'rider', ratingAvg: 4.85, ratingCount: 12 },
+    data: { email: 'rider@demo.com', passwordHash: riderPass, fullName: 'Daniel Sarmiento', phone: '5555555', role: 'rider', ratingAvg: 4.85, ratingCount: 12 },
   });
   const rider2 = await prisma.user.create({
     data: { email: 'rider2@demo.com', passwordHash: riderPass, fullName: 'María López', phone: '+57 301 234 5678', role: 'rider', ratingAvg: 4.92, ratingCount: 8 },

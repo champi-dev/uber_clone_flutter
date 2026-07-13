@@ -1,7 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DeviceLocation {
   final LatLng point;
@@ -32,15 +31,20 @@ class LocationService {
     }
   }
 
-  /// Reverse geocode via Google Geocoding API. Returns a human-readable address.
+  /// Reverse geocode via free OSM Nominatim. Returns a human-readable address.
   Future<String?> reverseGeocode(LatLng p) async {
-    final key = dotenv.env['GOOGLE_PLACES_API_KEY'] ?? '';
-    if (key.isEmpty) return null;
     try {
-      final r = await _dio.get('https://maps.googleapis.com/maps/api/geocode/json',
-          queryParameters: {'latlng': '${p.latitude},${p.longitude}', 'key': key, 'language': 'es'});
-      if (r.data['status'] == 'OK' && (r.data['results'] as List).isNotEmpty) {
-        return r.data['results'][0]['formatted_address'] as String;
+      final r = await _dio.get('https://nominatim.openstreetmap.org/reverse',
+          queryParameters: {
+            'lat': p.latitude,
+            'lon': p.longitude,
+            'format': 'jsonv2',
+            'accept-language': 'es',
+          },
+          options: Options(headers: {'User-Agent': 'RideNow/1.0 (ridenow.champi.lat)'}));
+      final name = r.data['display_name'] as String?;
+      if (name != null && name.isNotEmpty) {
+        return name.split(',').take(3).map((s) => s.trim()).join(', ');
       }
     } catch (_) {}
     return null;
