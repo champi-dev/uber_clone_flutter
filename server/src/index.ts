@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -17,6 +18,11 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ success: true, data: { status: 'ok' } }));
+
+// App-store requirement: privacy policy reachable in a browser
+app.get('/privacy', (_req, res) =>
+  res.sendFile(path.resolve(process.cwd(), 'public', 'privacy.html'))
+);
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/rides', rideRouter);

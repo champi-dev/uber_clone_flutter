@@ -8,6 +8,7 @@ COPY prisma ./prisma
 RUN npx prisma generate
 COPY tsconfig.json ./
 COPY src ./src
+COPY public ./public
 EXPOSE 3000
 # Push schema on boot; seed only when the db is empty (fresh volume)
 CMD ["sh", "-c", "npx prisma db push --skip-generate && ([ -f /data/.seeded ] || (npx tsx prisma/seed.ts && touch /data/.seeded)) && npx tsx src/index.ts"]
